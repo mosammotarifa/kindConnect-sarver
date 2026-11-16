@@ -20,7 +20,10 @@ const run = async () => {
     const db = client.db("social-event");
     const eventCollection = db.collection("event");
     const bookingCollection = db.collection("booking");
-
+    await bookingCollection.createIndex(
+      { eventId: 1, userId: 1 },
+      { unique: true },
+    );
     app.post("/create-event", async (req, res) => {
       try {
         const data = req.body;
