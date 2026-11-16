@@ -26,14 +26,16 @@ const run = async () => {
       { unique: true },
     );
     const JWKS = createRemoteJWKSet(
-      new URL("http://localhost:3000/api/auth/jwks"),
+      new URL(`${process.env.CLIENT_URL}/api/auth/jwks`),
     );
     const verifyToken = async (req, res, next) => {
       try {
         const authHeader = req.headers.authorization;
 
         if (!authHeader?.startsWith("Bearer ")) {
-          return res.status(401).send({ message: "Unauthorized" });
+          return res.status(401).send({
+            message: "Unauthorized: Token missing",
+          });
         }
 
         const token = authHeader.split(" ")[1];
@@ -44,11 +46,34 @@ const run = async () => {
 
         next();
       } catch (error) {
-        console.error("JWT verification error:", error);
-        return res.status(401).send({ message: "Invalid token" });
+        console.error("JWT verification error:", error.message);
+
+        return res.status(401).send({
+          message: "Invalid token",
+        });
       }
     };
-    app.post("/create-event",verifyToken, async (req, res) => {
+    // const verifyToken = async (req, res, next) => {
+    //   try {
+    //     const authHeader = req.headers.authorization;
+
+    //     if (!authHeader?.startsWith("Bearer ")) {
+    //       return res.status(401).send({ message: "Unauthorized" });
+    //     }
+
+    //     const token = authHeader.split(" ")[1];
+
+    //     const { payload } = await jwtVerify(token, JWKS);
+
+    //     req.user = payload;
+
+    //     next();
+    //   } catch (error) {
+    //     console.error("JWT verification error:", error);
+    //     return res.status(401).send({ message: "Invalid token" });
+    //   }
+    // };
+    app.post("/create-event", verifyToken, async (req, res) => {
       try {
         const data = req.body;
         const result = await eventCollection.insertOne(data);
@@ -68,7 +93,7 @@ const run = async () => {
           .send({ message: "failed to send data to client side." });
       }
     });
-    app.get("/create-event/organizer/:email",verifyToken, async (req, res) => {
+    app.get("/create-event/organizer/:email", verifyToken, async (req, res) => {
       try {
         const email = req.params.email;
         const filter = { email: email };
@@ -78,7 +103,7 @@ const run = async () => {
         res.status(500).send({ message: "failed to send data through email" });
       }
     });
-    app.patch("/create-event/:id",verifyToken, async (req, res) => {
+    app.patch("/create-event/:id", verifyToken, async (req, res) => {
       try {
         const { id } = req.params;
         const query = { _id: new ObjectId(id) };
@@ -90,7 +115,7 @@ const run = async () => {
         res.status(500).send({ message: "failed to update send " });
       }
     });
-    app.delete("/create-event/:id",verifyToken, async (req, res) => {
+    app.delete("/create-event/:id", verifyToken, async (req, res) => {
       try {
         const { id } = req.params;
         const data = { _id: new ObjectId(id) };
@@ -100,7 +125,7 @@ const run = async () => {
         res.status(500).send({ message: "failed to send deleted " });
       }
     });
-    app.get("/create-event/:id",verifyToken, async (req, res) => {
+    app.get("/create-event/:id", verifyToken, async (req, res) => {
       try {
         const { id } = req.params;
         const query = { _id: new ObjectId(id) };
@@ -112,7 +137,7 @@ const run = async () => {
         });
       }
     });
-    app.post("/booking",verifyToken, async (req, res) => {
+    app.post("/booking", verifyToken, async (req, res) => {
       try {
         const data = req.body;
         const { eventId, userId, userEmail } = data;
@@ -179,21 +204,25 @@ const run = async () => {
         res.status(500).send({ message: "Failed to join event" });
       }
     });
-    app.get("/booking/check/:eventId/:userId",verifyToken, async (req, res) => {
-      try {
-        const { eventId, userId } = req.params;
+    app.get(
+      "/booking/check/:eventId/:userId",
+      verifyToken,
+      async (req, res) => {
+        try {
+          const { eventId, userId } = req.params;
 
-        const joined = await bookingCollection.findOne({
-          eventId,
-          userId,
-        });
+          const joined = await bookingCollection.findOne({
+            eventId,
+            userId,
+          });
 
-        res.send({ isJoined: Boolean(joined) });
-      } catch (error) {
-        res.status(500).send({ message: "Failed to check join status" });
-      }
-    });
-    app.delete("/booking/:eventId/:userId",verifyToken, async (req, res) => {
+          res.send({ isJoined: Boolean(joined) });
+        } catch (error) {
+          res.status(500).send({ message: "Failed to check join status" });
+        }
+      },
+    );
+    app.delete("/booking/:eventId/:userId", verifyToken, async (req, res) => {
       try {
         const { eventId, userId } = req.params;
 
@@ -222,7 +251,7 @@ const run = async () => {
         res.status(500).send({ message: "Failed to undo joining" });
       }
     });
-    app.get("/booking/:email",verifyToken, async (req, res) => {
+    app.get("/booking/:email", verifyToken, async (req, res) => {
       try {
         const email = req.params.email;
         const data = { userEmail: email };
