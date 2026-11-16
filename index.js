@@ -49,6 +49,18 @@ const run = async () => {
         res.status(500).send({ message: "failed to send data through email" });
       }
     });
+    app.patch("/create-event/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+        const query = { _id: new ObjectId(id) };
+        const data = req.body;
+        const updated = { $set: data };
+        const result = await eventCollection.updateOne(query, updated);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "failed to update send " });
+      }
+    });
     await client.db("admin").command({ ping: 1 });
     console.log("successfully  pinged ");
     app.listen(port, () => {
