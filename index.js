@@ -169,6 +169,35 @@ const run = async () => {
         res.status(500).send({ message: "Failed to check join status" });
       }
     });
+    app.delete("/booking/:eventId/:userId", async (req, res) => {
+      try {
+        const { eventId, userId } = req.params;
+
+        const eventObjectId = new ObjectId(eventId);
+
+        const result = await bookingCollection.deleteOne({
+          eventId,
+          userId,
+        });
+
+        if (result.deletedCount === 0) {
+          return res.status(404).send({
+            message: "Booking not found",
+          });
+        }
+
+        // Restore available capacity
+        await eventCollection.updateOne(
+          { _id: eventObjectId, joinedCount: { $gt: 0 } },
+          { $inc: { joinedCount: -1 } },
+        );
+
+        res.send({ message: "Successfully left the event" });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Failed to undo joining" });
+      }
+    });
     await client.db("admin").command({ ping: 1 });
     console.log("successfully  pinged ");
     app.listen(port, () => {
