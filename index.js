@@ -19,6 +19,8 @@ const run = async () => {
     await client.connect();
     const db = client.db("social-event");
     const eventCollection = db.collection("event");
+    const bookingCollection = db.collection("booking");
+
     app.post("/create-event", async (req, res) => {
       try {
         const data = req.body;
@@ -81,6 +83,73 @@ const run = async () => {
         res.status(500).send({
           message: "failed to get single data from create-event data",
         });
+      }
+    });
+    app.post("/booking", async (req, res) => {
+      try {
+        const data = req.body;
+        const { eventId, userId, userEmail } = data;
+
+        if (!eventId || !userId || !userEmail) {
+          return res
+            .status(400)
+            .send({ message: "Missing booking information" });
+        }
+
+        const eventObjectId = new ObjectId(eventId);
+
+        const alreadyJoined = await bookingCollection.findOne({
+          eventId,
+          userId,
+        });
+
+        if (alreadyJoined) {
+          return res.status(409).send({ message: "Already joined this event" });
+        }
+
+        const updatedEvent = await eventCollection.updateOne(
+          {
+            _id: eventObjectId,
+            $expr: {
+              $lt: [{ $ifNull: ["$joinedCount", 0] }, "$capacity"],
+            },
+          },
+          {
+            $inc: { joinedCount: 1 },
+          },
+        );
+
+        if (updatedEvent.modifiedCount === 0) {
+          return res.status(400).send({
+            message: "Event is full or does not exist",
+          });
+        }
+
+        try {
+          const result = await bookingCollection.insertOne(data);
+
+          return res.status(201).send({
+            message: "Successfully joined event",
+            result,
+          });
+        } catch (error) {
+          // Restore count if booking insertion fails
+          await eventCollection.updateOne(
+            { _id: eventObjectId },
+            { $inc: { joinedCount: -1 } },
+          );
+
+          if (error.code === 11000) {
+            return res.status(409).send({
+              message: "Already joined this event",
+            });
+          }
+
+          throw error;
+        }
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Failed to join event" });
       }
     });
     await client.db("admin").command({ ping: 1 });
