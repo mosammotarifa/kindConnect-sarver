@@ -28,6 +28,17 @@ const run = async () => {
         res.status(500).send({ message: "failed to post create-event" });
       }
     });
+    app.get("/create-event", async (req, res) => {
+      try {
+        const data = eventCollection.find();
+        const result = await data.toArray();
+        res.send(result);
+      } catch (error) {
+        res
+          .status(500)
+          .send({ message: "failed to send data to client side." });
+      }
+    });
     await client.db("admin").command({ ping: 1 });
     console.log("successfully  pinged ");
     app.listen(port, () => {
