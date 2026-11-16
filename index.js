@@ -71,6 +71,18 @@ const run = async () => {
         res.status(500).send({ message: "failed to send deleted " });
       }
     });
+    app.get("/create-event/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+        const query = { _id: new ObjectId(id) };
+        const result = await eventCollection.findOne(query);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({
+          message: "failed to get single data from create-event data",
+        });
+      }
+    });
     await client.db("admin").command({ ping: 1 });
     console.log("successfully  pinged ");
     app.listen(port, () => {
