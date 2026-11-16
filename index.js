@@ -61,6 +61,16 @@ const run = async () => {
         res.status(500).send({ message: "failed to update send " });
       }
     });
+    app.delete("/create-event/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+        const data = { _id: new ObjectId(id) };
+        const result = await eventCollection.deleteOne(data);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "failed to send deleted " });
+      }
+    });
     await client.db("admin").command({ ping: 1 });
     console.log("successfully  pinged ");
     app.listen(port, () => {
