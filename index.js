@@ -7,7 +7,18 @@ const uri = process.env.MONGODB_URI;
 app.use(cors());
 app.use(express.json());
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-const { createRemoteJWKSet, jwtVerify } = require("jose");
+// const { createRemoteJWKSet, jwtVerify } = require("jose");
+let jose;
+
+async function getJose() {
+  if (!jose) {
+    jose = await import("jose");
+  }
+  return jose;
+}
+
+
+
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -25,40 +36,17 @@ const run = async () => {
       { eventId: 1, userId: 1 },
       { unique: true },
     );
-    const JWKS = createRemoteJWKSet(
-      new URL(`${process.env.CLIENT_URL}/api/auth/jwks`),
-    );
-    const verifyToken = async (req, res, next) => {
-      try {
-        const authHeader = req.headers.authorization;
-
-        if (!authHeader?.startsWith("Bearer ")) {
-          return res.status(401).send({
-            message: "Unauthorized: Token missing",
-          });
-        }
-
-        const token = authHeader.split(" ")[1];
-
-        const { payload } = await jwtVerify(token, JWKS);
-
-        req.user = payload;
-
-        next();
-      } catch (error) {
-        console.error("JWT verification error:", error.message);
-
-        return res.status(401).send({
-          message: "Invalid token",
-        });
-      }
-    };
+    // const JWKS = createRemoteJWKSet(
+    //   new URL(`${process.env.CLIENT_URL}/api/auth/jwks`),
+    // );
     // const verifyToken = async (req, res, next) => {
     //   try {
     //     const authHeader = req.headers.authorization;
 
     //     if (!authHeader?.startsWith("Bearer ")) {
-    //       return res.status(401).send({ message: "Unauthorized" });
+    //       return res.status(401).send({
+    //         message: "Unauthorized: Token missing",
+    //       });
     //     }
 
     //     const token = authHeader.split(" ")[1];
@@ -69,10 +57,46 @@ const run = async () => {
 
     //     next();
     //   } catch (error) {
-    //     console.error("JWT verification error:", error);
-    //     return res.status(401).send({ message: "Invalid token" });
+    //     console.error("JWT verification error:", error.message);
+
+    //     return res.status(401).send({
+    //       message: "Invalid token",
+    //     });
     //   }
     // };
+
+const { createRemoteJWKSet, jwtVerify } = await getJose();
+
+const JWKS = createRemoteJWKSet(
+  new URL(`${process.env.CLIENT_URL}/api/auth/jwks`),
+);
+
+const verifyToken = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader?.startsWith("Bearer ")) {
+      return res.status(401).send({
+        message: "Unauthorized: Token missing",
+      });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    const { payload } = await jwtVerify(token, JWKS);
+
+    req.user = payload;
+
+    next();
+  } catch (error) {
+    console.error("JWT verification error:", error.message);
+
+    return res.status(401).send({
+      message: "Invalid token",
+    });
+  }
+};
+
     app.post("/create-event", verifyToken, async (req, res) => {
       try {
         const data = req.body;
