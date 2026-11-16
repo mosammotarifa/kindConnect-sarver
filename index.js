@@ -152,6 +152,20 @@ const run = async () => {
         res.status(500).send({ message: "Failed to join event" });
       }
     });
+    app.get("/booking/check/:eventId/:userId", async (req, res) => {
+      try {
+        const { eventId, userId } = req.params;
+
+        const joined = await bookingCollection.findOne({
+          eventId,
+          userId,
+        });
+
+        res.send({ isJoined: Boolean(joined) });
+      } catch (error) {
+        res.status(500).send({ message: "Failed to check join status" });
+      }
+    });
     await client.db("admin").command({ ping: 1 });
     console.log("successfully  pinged ");
     app.listen(port, () => {
