@@ -198,6 +198,18 @@ const run = async () => {
         res.status(500).send({ message: "Failed to undo joining" });
       }
     });
+    app.get("/booking/:email", async (req, res) => {
+      try {
+        const email = req.params.email;
+        const data = { userEmail: email };
+        const result = await bookingCollection.find(data).toArray();
+        res.send(result);
+      } catch (error) {
+        res
+          .status(500)
+          .send({ message: "failed to send data by email in booking card" });
+      }
+    });
     await client.db("admin").command({ ping: 1 });
     console.log("successfully  pinged ");
     app.listen(port, () => {
