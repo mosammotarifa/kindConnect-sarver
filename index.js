@@ -18,8 +18,16 @@ const run = async () => {
   try {
     await client.connect();
     const db = client.db("social-event");
-  
-  
+    const eventCollection = db.collection("event");
+    app.post("/create-event", async (req, res) => {
+      try {
+        const data = req.body;
+        const result = await eventCollection.insertOne(data);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "failed to post create-event" });
+      }
+    });
     await client.db("admin").command({ ping: 1 });
     console.log("successfully  pinged ");
     app.listen(port, () => {
