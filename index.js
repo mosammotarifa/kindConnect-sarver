@@ -39,6 +39,16 @@ const run = async () => {
           .send({ message: "failed to send data to client side." });
       }
     });
+    app.get("/create-event/organizer/:email", async (req, res) => {
+      try {
+        const email = req.params.email;
+        const filter = { email: email };
+        const result = await eventCollection.find(filter).toArray();
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "failed to send data through email" });
+      }
+    });
     await client.db("admin").command({ ping: 1 });
     console.log("successfully  pinged ");
     app.listen(port, () => {
