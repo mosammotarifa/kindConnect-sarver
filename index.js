@@ -66,7 +66,7 @@ const run = async () => {
     });
     app.get("/create-event", async (req, res) => {
       try {
-        const data = eventCollection.find()
+        const data = eventCollection.find().sort({ _id: -1 })
         const result = await data.toArray();
         res.send(result);
       } catch (error) {
